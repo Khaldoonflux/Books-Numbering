@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حاسبة ترقيم الدفاتر</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0d1117;
+    --surface: #161b22;
+    --panel:   #1c2330;
+    --border:  #2a3441;
+    --accent:  #f0a500;
+    --blue:    #388bfd;
+    --text:    #e6edf3;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    min-height: 100vh;
+    direction: rtl;
+  }
+
+  .page-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 36px 16px 60px;
+  }
+
+  /* ── Header ── */
+  header { text-align: center; margin-bottom: 16px; }
+  header h1 {
+    font-size: clamp(24px, 5vw, 40px);
+    font-weight: 400;
+    background: linear-gradient(135deg, var(--accent) 0%, #fff 60%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Panels ── */
+  .row-card { display: flex; flex-direction: column; gap: 12px; }
+
+  .panel-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  /* ── Input rows ── */
+  .field {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .field:last-child { border-bottom: none; }
+
+  .field label {
+    width: 33%;
+    flex-shrink: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.3;
+    white-space: normal;
+  }
+
+  /* ── Stepper ── */
+  .stepper-wrap {
+    display: flex;
+    align-items: stretch;
+    width: 67%;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .stepper-wrap:focus-within { border-color: var(--accent); }
+
+  .btn-step {
+    background: var(--panel);
+    border: none;
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 900;
+    width: 36px;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: background .1s;
+  }
+  .btn-step:hover  { background: rgba(240,165,0,0.15); }
+  .btn-step:active { background: rgba(240,165,0,0.3); }
+
+  .stepper-wrap input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    font-size: 22px;
+    font-weight: 400;
+    text-align: center;
+    padding: 6px 2px;
+    width: 0;
+    outline: none;
+  }
+  .stepper-wrap input::placeholder { color: var(--border); }
+
+  /* ── Results ── */
+  .results-panel { display: flex; flex-direction: column; }
+
+  .result-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-row:last-child { border-bottom: none; }
+
+  .rc-label {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--blue);
+  }
+  .rc-value {
+    font-family: 'Tajawal', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .rc-value.placeholder { color: var(--border); }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <header>
+    <h1>حاسبة ترقيم الدفاتر</h1>
+  </header>
+
+  <div id="rows-container"></div>
+
+</div>
+<script>
+const BLANK_ROW = { total: 1, pages: 50, bps: 1, start: 1 };
+let rowId = 0;
+const container = document.getElementById('rows-container');
+
+// ─── Formula ───────────────────────────────────────────────────────────────
+function calcSequence(total, pages, bps, start) {
+  const seq1 = total * pages + start - 1;
+  const step = (total * pages) / bps;
+  const seq  = [];
+  for (let i = 0; i < bps; i++) {
+    seq.push(Math.max(0, Math.round((seq1 - i * step) * 100) / 100));
+  }
+  return seq;
+}
+
+// ─── Number formatting ─────────────────────────────────────────────────────
+function formatNumber(n) {
+  if (n === '' || n === null || isNaN(n)) return '';
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function parseNumber(s) {
+  if (!s) return 0;
+  return parseInt(s.toString().replace(/,/g, '')) || 0;
+}
+
+function formatInput(el) {
+  const cursor = el.selectionStart;
+  const oldLen = el.value.length;
+  const val = el.value.replace(/,/g, '');
+  if (val === '') { el.value = ''; }
+  else if (!isNaN(val)) { el.value = formatNumber(parseInt(val)); }
+  const newLen = el.value.length;
+  if (document.activeElement === el && typeof el.setSelectionRange === 'function') {
+    el.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
+  }
+}
+
+// ─── Continuous stepper ────────────────────────────────────────────────────
+let stepInterval  = null;
+let stepTimeout   = null;
+let lastActionTime = 0;
+
+function stepField(inputId, delta, min, max) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  el.value = formatNumber(Math.min(max, Math.max(min, parseNumber(el.value) + delta)));
+  const rowId = parseInt(inputId.split('-').pop());
+  renderResults(rowId);
+}
+
+function startStep(e, inputId, delta, min, max) {
+  if (e.type === 'mousedown' && 'ontouchstart' in window) return;
+  e.preventDefault();
+  const now = Date.now();
+  if (now - lastActionTime < 150) return;
+  lastActionTime = now;
+  stepField(inputId, delta, min, max);
+  stopStep();
+  stepTimeout = setTimeout(() => {
+    stepInterval = setInterval(() => stepField(inputId, delta, min, max), 100);
+  }, 650);
+}
+
+function stopStep() {
+  clearTimeout(stepTimeout);
+  clearInterval(stepInterval);
+}
+
+// ─── Build stepper HTML ────────────────────────────────────────────────────
+function stepper(field, id, val, min, max, label) {
+  const valAttr = val !== '' ? `value="${formatNumber(val)}"` : '';
+  return `
+    <div class="field">
+      <label>${label}</label>
+      <div class="stepper-wrap">
+        <button class="btn-step" tabindex="-1"
+          onmousedown="startStep(event,'${field}-${id}',1,${min},${max})"
+          onmouseup="stopStep()" onmouseleave="stopStep()"
+          ontouchstart="startStep(event,'${field}-${id}',1,${min},${max})"
+          ontouchend="stopStep()">+</button>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" dir="ltr"
+               id="${field}-${id}" ${valAttr} placeholder="—">
+        <button class="btn-step" tabindex="-1"
+          onmousedown="startStep(event,'${field}-${id}',-1,${min},${max})"
+          onmouseup="stopStep()" onmouseleave="stopStep()"
+          ontouchstart="startStep(event,'${field}-${id}',-1,${min},${max})"
+          ontouchend="stopStep()">−</button>
+      </div>
+    </div>`;
+}
+
+// ─── Create row ────────────────────────────────────────────────────────────
+function createRow(data = {}) {
+  const id = ++rowId;
+  const { total = 1, pages = 50, bps = 1, start = 1 } = data;
+
+  const card = document.createElement('div');
+  card.className = 'row-card';
+  card.id = `row-${id}`;
+
+  card.innerHTML = `
+    <div class="panel-box">
+      ${stepper('total', id, total,  1, 9999,  'عدد الدفاتر الكلي')}
+      ${stepper('pages', id, pages,  1, 9999,  'عدد أوراق الدفتر')}
+      ${stepper('start', id, start,  1, 99999, 'بداية الترقيم')}
+      ${stepper('bps',   id, bps,    1, 100,   'عدد الدفاتر على الورقة')}
+    </div>
+    <div class="panel-box">
+      <div class="results-panel" id="results-${id}"></div>
+    </div>
+  `;
+
+  container.appendChild(card);
+  renderResults(id);
+
+  const inputs = Array.from(card.querySelectorAll('input'));
+  inputs.forEach((inp, idx) => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Tab' || e.key === 'Enter') {
+        e.preventDefault();
+        inputs[(idx + (e.shiftKey ? inputs.length - 1 : 1)) % inputs.length].focus();
+      }
+    });
+    inp.addEventListener('input', () => { formatInput(inp); renderResults(id); });
+    inp.addEventListener('blur', () => {
+      const raw = parseNumber(inp.value);
+      if (raw > 0) inp.value = formatNumber(raw);
+    });
+    inp.addEventListener('focus', () => {
+      const raw = parseNumber(inp.value);
+      if (raw > 0) {
+        inp.value = raw;
+        setTimeout(() => {
+          const len = inp.value.length;
+          inp.setSelectionRange(len, len);
+        }, 0);
+      }
+    });
+  });
+}
+
+// ─── Render results ────────────────────────────────────────────────────────
+function renderResults(id) {
+  const getRaw = f => (document.getElementById(`${f}-${id}`)?.value || '').replace(/,/g, '');
+  const tv = getRaw('total'), pv = getRaw('pages'), bv = getRaw('bps'), sv = getRaw('start');
+  const res = document.getElementById(`results-${id}`);
+  const bps = parseInt(bv) || 0;
+  const count = bps > 0 ? bps : 4;
+
+  if (!parseInt(tv) || !parseInt(pv) || !bps || !parseInt(sv)) {
+    res.innerHTML = Array.from({ length: count }, (_, i) => `
+      <div class="result-row">
+        <span class="rc-label">تنازلي ${i + 1}</span>
+        <span class="rc-value placeholder">—</span>
+      </div>`).join('');
+    return;
+  }
+
+  const seq = calcSequence(parseInt(tv), parseInt(pv), bps, parseInt(sv));
+  res.innerHTML = seq.map((v, i) => `
+    <div class="result-row">
+      <span class="rc-label">تنازلي ${i + 1}</span>
+      <span class="rc-value">${formatNumber(v)}</span>
+    </div>`).join('');
+}
+
+createRow(BLANK_ROW);
+</script>
+</body>
+</html>
