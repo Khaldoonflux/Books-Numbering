@@ -146,6 +146,26 @@
     color: #fff;
   }
   .rc-value.placeholder { color: var(--border); }
+
+  /* ── كبسة panel ── */
+  .kabsa-box {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+  }
+  .kabsa-value {
+    font-family: 'Tajawal', sans-serif;
+    font-size: 30px;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .kabsa-label {
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+  }
 </style>
 </head>
 <body>
@@ -270,6 +290,10 @@ function createRow(data = {}) {
     <div class="panel-box">
       <div class="results-panel" id="results-${id}"></div>
     </div>
+    <div class="panel-box kabsa-box" id="kabsa-${id}">
+      <span class="kabsa-value">—</span>
+      <span class="kabsa-label">كبسة</span>
+    </div>
   `;
 
   container.appendChild(card);
@@ -315,6 +339,7 @@ function renderResults(id) {
         <span class="rc-label">تنازلي ${i + 1}</span>
         <span class="rc-value placeholder">—</span>
       </div>`).join('');
+    document.querySelector(`#kabsa-${id} .kabsa-value`).textContent = '—';
     return;
   }
 
@@ -324,6 +349,9 @@ function renderResults(id) {
       <span class="rc-label">تنازلي ${i + 1}</span>
       <span class="rc-value">${formatNumber(v)}</span>
     </div>`).join('');
+
+  const kabsa = Math.round(((parseInt(tv) * parseInt(pv)) / bps) * 100) / 100;
+  document.querySelector(`#kabsa-${id} .kabsa-value`).textContent = formatNumber(kabsa);
 }
 
 createRow(BLANK_ROW);
