@@ -289,10 +289,10 @@ function createRow(data = {}) {
 
   card.innerHTML = `
     <div class="panel-box">
-      ${stepper('total', id, total,  1, 9999,  'عدد الدفاتر الكلي')}
-      ${stepper('pages', id, pages,  1, 9999,  'عدد أوراق الدفتر')}
-      ${stepper('start', id, start,  1, 99999, 'بداية الترقيم')}
-      ${stepper('bps',   id, bps,    1, 100,   'عدد الدفاتر على الورقة')}
+      ${stepper('total', id, total,  1, Infinity,  'عدد الدفاتر الكلي')}
+      ${stepper('pages', id, pages,  1, Infinity,  'عدد أوراق الدفتر')}
+      ${stepper('start', id, start,  1, Infinity, 'بداية الترقيم')}
+      ${stepper('bps',   id, bps,    1, Infinity,   'عدد الدفاتر على الورقة')}
     </div>
     <div class="panel-box">
       <div class="results-panel" id="results-${id}"></div>
