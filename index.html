@@ -146,6 +146,13 @@
     color: #fff;
   }
   .rc-value.placeholder { color: var(--border); }
+  .rc-sub {
+    font-size: 24px;
+    font-weight: 400;
+    color: #3ddc84;
+    margin-top: 2px;
+    direction: ltr;
+  }
 
   /* ── كبسة panel ── */
   .kabsa-box {
@@ -343,14 +350,19 @@ function renderResults(id) {
     return;
   }
 
+  const kabsa = Math.round(((parseInt(tv) * parseInt(pv)) / bps) * 100) / 100;
   const seq = calcSequence(parseInt(tv), parseInt(pv), bps, parseInt(sv));
-  res.innerHTML = seq.map((v, i) => `
+  res.innerHTML = seq.map((v, i) => {
+    const sub = Math.round((v - kabsa + 1) * 100) / 100;
+    return `
     <div class="result-row">
       <span class="rc-label">تنازلي ${i + 1}</span>
-      <span class="rc-value">${formatNumber(v)}</span>
-    </div>`).join('');
-
-  const kabsa = Math.round(((parseInt(tv) * parseInt(pv)) / bps) * 100) / 100;
+      <div style="display:flex;flex-direction:column;align-items:flex-end;">
+        <span class="rc-value">${formatNumber(v)}</span>
+        <span class="rc-sub">${formatNumber(sub)}</span>
+      </div>
+    </div>`;
+  }).join('');
   document.querySelector(`#kabsa-${id} .kabsa-value`).textContent = formatNumber(kabsa);
 }
 
